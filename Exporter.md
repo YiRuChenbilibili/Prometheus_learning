@@ -11,12 +11,12 @@
 
 ## Exporter规范 ##
 所有的Exporter程序都需要按照Prometheus的规范，返回监控的样本数据。以Node Exporter为例，当访问/metrics地址时会返回以下内容：
-`
-# HELP node_cpu Seconds the cpus spent in each mode.
-# TYPE node_cpu counter
+``
+#HELP node_cpu Seconds the cpus spent in each mode.
+#TYPE node_cpu counter
 node_cpu{cpu="cpu0",mode="idle"} 362812.7890625
-# HELP node_load1 1m load average.
-# TYPE node_load1 gauge
+#HELP node_load1 1m load average.
+#TYPE node_load1 gauge
 node_load1 3.0703125
 `
 Exporter返回的样本数据，主要由三个部分组成：样本的一般注释信息（HELP），样本的类型注释信息（TYPE）和样本。Prometheus会对Exporter响应的内容逐行解析：   
