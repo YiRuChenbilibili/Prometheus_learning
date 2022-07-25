@@ -125,5 +125,5 @@ scrape_configs:
 第1步，根据Target实例的地址，写入__param_target标签中。__param_<name>形式的标签表示，在采集任务时会在请求目标地址中添加<name>参数，等同于params的设置；    
 第2步，获取__param_target的值，并覆写到instance标签中；    
 第3步，覆写Target实例的__address__标签值为BlockBox Exporter实例的访问地址。    
-
+**HTTP探针**
 
