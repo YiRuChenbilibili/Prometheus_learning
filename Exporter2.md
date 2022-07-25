@@ -55,12 +55,75 @@ Blackbox Exporter是Prometheus社区提供的官方黑盒监控解决方案，�
   [ dns: <dns_probe> ]
   [ icmp: <icmp_probe> ]
   ```
+  简化的探针配置文件blockbox.yml，包含两个HTTP探针配置项：
+  ```
+  modules:
+  http_2xx:
+    prober: http
+    http:
+      method: GET
+  http_post_2xx:
+    prober: http
+    http:
+      method: POST
+  ```
   指定使用的探针配置文件启动Blockbox Exporter实例：
   ```
   blackbox_exporter --config.file=/etc/prometheus/blackbox.yml
   ```
 启动成功后，就可以通过访问http://127.0.0.1:9115/probe?module=http_2xx&target=baidu.com 对baidu.com进行探测。这里通过在URL中提供module参数指定了当前使用的探针(http_2xx)，target参数指定探测目标(=baidu.com)，探针的探测结果通过Metrics的形式返回。     
-从返回的样本中，用户可以获取站点的DNS解析耗时、站点响应时间、HTTP响应状态码等等和站点访问质量相关的监控指标，从而帮助管理员主动的发现故障和问题。
+从返回的样本中，用户可以获取站点的DNS解析耗时、站点响应时间、HTTP响应状态码等等和站点访问质量相关的监控指标，从而帮助管理员主动的发现故障和问题。    
 
+**与Prometheus集成**
+在Prometheus下配置对Blockbox Exporter实例的采集任务:
+```
+- job_name: baidu_http2xx_probe
+  params:
+    module:
+    - http_2xx
+    target:
+    - baidu.com
+  metrics_path: /probe
+  static_configs:
+  - targets:
+    - 127.0.0.1:9115
+- job_name: prometheus_http2xx_probe
+  params:
+    module:
+    - http_2xx
+    target:
+    - prometheus.io
+  metrics_path: /probe
+  static_configs:
+  - targets:
+    - 127.0.0.1:9115
+ ```
+分别配置了名为baidu_http2x_probe和prometheus_http2xx_probe的采集任务，并且通过params指定使用的探针（module）以及探测目标（target）。    
+但是，**当N个目标站点且都需要M种探测方式，那么Prometheus中将包含N * M个采集任务，从配置管理的角度来说显然是不可接受的。** 此时需要采用Prometheus的Relabling的方式对这些配置进行简化，配置方式如下：
+```
+scrape_configs:
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+    //Target实例的地址
+      - targets:
+        - http://prometheus.io    # Target to probe with http.
+        - https://prometheus.io   # Target to probe with https.
+        - http://example.com:8080 # Target to probe with http on port 8080.
+    relabel_configs:
+    //等同于params设置
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+    //BlockBox Exporter实例的访问地址
+      - target_label: __address__
+        replacement: 127.0.0.1:9115
+```
+第1步，根据Target实例的地址，写入__param_target标签中。__param_<name>形式的标签表示，在采集任务时会在请求目标地址中添加<name>参数，等同于params的设置；    
+第2步，获取__param_target的值，并覆写到instance标签中；    
+第3步，覆写Target实例的__address__标签值为BlockBox Exporter实例的访问地址。    
 
 
