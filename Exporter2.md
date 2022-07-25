@@ -59,7 +59,7 @@ Blackbox Exporter是Prometheus社区提供的官方黑盒监控解决方案，�
   ```
   blackbox_exporter --config.file=/etc/prometheus/blackbox.yml
   ```
-启动成功后，就可以通过访问http://127.0.0.1:9115/probe?module=http_2xx&target=baidu.com对baidu.com进行探测。这里通过在URL中提供module参数指定了当前使用的探针(http_2xx)，target参数指定探测目标(=baidu.com)，探针的探测结果通过Metrics的形式返回。     
+启动成功后，就可以通过访问http://127.0.0.1:9115/probe?module=http_2xx&target=baidu.com 对baidu.com进行探测。这里通过在URL中提供module参数指定了当前使用的探针(http_2xx)，target参数指定探测目标(=baidu.com)，探针的探测结果通过Metrics的形式返回。     
 从返回的样本中，用户可以获取站点的DNS解析耗时、站点响应时间、HTTP响应状态码等等和站点访问质量相关的监控指标，从而帮助管理员主动的发现故障和问题。
 
 
