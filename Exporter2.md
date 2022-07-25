@@ -74,7 +74,7 @@ Blackbox Exporter是Prometheus社区提供的官方黑盒监控解决方案，�
 启动成功后，就可以通过访问http://127.0.0.1:9115/probe?module=http_2xx&target=baidu.com 对baidu.com进行探测。这里通过在URL中提供module参数指定了当前使用的探针(http_2xx)，target参数指定探测目标(=baidu.com)，探针的探测结果通过Metrics的形式返回。     
 从返回的样本中，用户可以获取站点的DNS解析耗时、站点响应时间、HTTP响应状态码等等和站点访问质量相关的监控指标，从而帮助管理员主动的发现故障和问题。    
 
-**与Prometheus集成**
+**与Prometheus集成**    
 在Prometheus下配置对Blockbox Exporter实例的采集任务:
 ```
 - job_name: baidu_http2xx_probe
@@ -124,6 +124,17 @@ scrape_configs:
 ```
 第1步，根据Target实例的地址，写入__param_target标签中。__param_<name>形式的标签表示，在采集任务时会在请求目标地址中添加<name>参数，等同于params的设置；    
 第2步，获取__param_target的值，并覆写到instance标签中；    
-第3步，覆写Target实例的__address__标签值为BlockBox Exporter实例的访问地址。    
-**HTTP探针**
+第3步，覆写Target实例的__address__标签值为BlockBox Exporter实例的访问地址。  
+  
+**HTTP探针**    
+HTTP探针是进行黑盒监控时最常用的探针之一，通过HTTP探针能够网站或者HTTP服务建立有效的监控，包括其本身的可用性，以及用户体验相关的如响应时间等等。除了能够在服务出现异常的时候及时报警，还能帮助系统管理员分析和优化网站体验。    
 
+Blockbox Exporter中所有的探针均是以Module的信息进行配置。如下所示，配置了一个最简单的HTTP探针：
+```
+  modules:
+  http_2xx_example:
+    prober: http
+    http:
+```
+通过prober配置项指定探针类型。配置项http用于自定义探针的探测方式，这里有没对http配置项添加任何配置，表示完全使用HTTP探针的默认配置，该探针将使用HTTP GET的方式对目标服务进行探测，并且验证返回状态码是否为2XX，是则表示验证成功，否则失败。     
+除此之外还可以*自定义HTTP请求*以及*自定义探针行为*
