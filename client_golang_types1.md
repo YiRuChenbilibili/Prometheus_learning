@@ -18,6 +18,7 @@ func main() {
 		Name: "requests_total",
 		Help: "The total number of requests served.",
 	})
+	//尝试注册
 	if err := prometheus.Register(reqCounter); err != nil {
 		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
 			// 该指标的计数器以前已经注册过。
@@ -34,4 +35,18 @@ func main() {
 **func (AlreadyRegisteredError) Error**
 ```
 func (err AlreadyRegisteredError) Error() string
+```
+## type Collector ##
+```
+type Collector interface {
+        // Describe 将由此收集器收集的所有可能的指标描述符的超集
+	// 如果收集器在执行此方法时遇到错误，它
+	// 必须发送一个无效描述符（使用 NewInvalidDesc 创建）来
+	// 向注册表发出错误信号。
+	Describe(chan<- *Desc)
+	// 在收集指标时，Prometheus 注册表调用 Collect。
+	// 该实现通过提供的通道发送每个收集到的metric，并在发送最后一个metric后返回。
+	// 每个已发送度量的描述符是Describe返回的描述符之一
+	Collect(chan<- Metric)
+}
 ```
