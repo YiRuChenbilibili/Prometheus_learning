@@ -97,12 +97,11 @@ func main() {
 	// (在真实的程序中，需要启动HTTP服务器…)
 	http.Handle("/metrics", promhttp.Handler())
 	
-	// Now you can start workers and give every one of them a pointer to
-	// taskCounter and let it increment it whenever it completes a task.
-	taskCounter.Inc() // This has to happen somewhere in the worker code.
+	//现在你可以启动workers并给它们每个一个指针  
+	//taskCounter，并让它在完成任务时递增。  
+	//这必须发生在工作代码的某个地方。  
 
-	// But wait, you want to see how individual workers perform. So you need
-	// a vector of counters, with one element for each worker.
+	//你想看看每个worker的表现。 所以你需要一个计数器向量，每个worker有一个element。 
 	taskCounterVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem: "worker_pool",
@@ -112,33 +111,32 @@ func main() {
 		[]string{"worker_id"},
 	)
 
-	// Registering will fail because we already have a metric of that name.
+	// 注册会失败，因为我们已经有了这个名称的指标。 
 	if err := prometheus.Register(taskCounterVec); err != nil {
 		fmt.Println("taskCounterVec not registered:", err)
 	} else {
 		fmt.Println("taskCounterVec registered.")
 	}
 
-	// To fix, first unregister the old taskCounter.
+	// 要修复这个问题，首先要注销旧的taskCounter。
 	if prometheus.Unregister(taskCounter) {
 		fmt.Println("taskCounter unregistered.")
 	}
 
-	// Try registering taskCounterVec again.
+	// 再次尝试注册taskCounterVec。
 	if err := prometheus.Register(taskCounterVec); err != nil {
 		fmt.Println("taskCounterVec not registered:", err)
 	} else {
 		fmt.Println("taskCounterVec registered.")
 	}
-	// Bummer! Still doesn't work.
+	// Bummer! 仍然不工作。
 
-	// Prometheus will not allow you to ever export metrics with
-	// inconsistent help strings or label names. After unregistering, the
-	// unregistered metrics will cease to show up in the /metrics HTTP
-	// response, but the registry still remembers that those metrics had
-	// been exported before. For this example, we will now choose a
-	// different name. (In a real program, you would obviously not export
-	// the obsolete metric in the first place.)
+
+	//普罗米修斯将不允许您使用不一致的帮助字符串或标签名称export度量。取消注册后,
+	//未注册的度量将不再显示在/metrics HTTP响应中
+	//但注册中心仍然记得那些度量曾经export
+	//对于本例，我们现在选择一个不同的名称。
+	//(在真实的程序中，您显然不会首先export过时的度量。)
 	taskCounterVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem: "worker_pool",
@@ -154,18 +152,15 @@ func main() {
 	}
 	// Finally it worked!
 
-	// The workers have to tell taskCounterVec their id to increment the
-	// right element in the metric vector.
+	// workers必须告诉taskCounterVec他们的id来增加度量向量中正确元素。
 	taskCounterVec.WithLabelValues("42").Inc() // Code from worker 42.
 
-	// Each worker could also keep a reference to their own counter element
-	// around. Pick the counter at initialization time of the worker.
+	// 每个worker也可以在周围保留一个对自己counter元素的引用。 在工作程序的初始化时选择计数器。 
 	myCounter := taskCounterVec.WithLabelValues("42") // From worker 42 initialization code.
 	myCounter.Inc()                                   // Somewhere in the code of that worker.
 
-	// Note that something like WithLabelValues("42", "spurious arg") would
-	// panic (because you have provided too many label values). If you want
-	// to get an error instead, use GetMetricWithLabelValues(...) instead.
+	//注意，像WithLabelValues("42"， "spurious arg")这样的东西会引起恐慌(因为您提供了太多的标签值)。
+	//如果你想获得一个error，使用GetMetricWithLabelValues(…)代替。
 	notMyCounter, err := taskCounterVec.GetMetricWithLabelValues("42", "spurious arg")
 	if err != nil {
 		fmt.Println("Worker initialization failed:", err)
