@@ -71,4 +71,34 @@ MustRegister 是迄今为止最常用的注册收集器的方法。正如名称�
 
 **Graphite Bridge**     
 将指标从 Gatherer 推送到 Graphite 的函数和示例可以在 Graphite 子包中找到。    
+## 常量 ##
+SummaryOpts 的默认值。
+```
+const (
+ 	// DefMaxAge 是观察保持相关的默认持续时间。 
+	DefMaxAge time . Duration = 10 * time . Minute
+	// DefAgeBuckets 是用于计算// 观察年龄的默认桶数。	
+	DefAgeBuckets = 5
+	// DefBufCap 是用于收集汇总观察的标准缓冲区大小。
+	DefBufCap = 500
+)
+```
+ExemplarMaxRunes 是示例标签中允许的最大符文总数。      
+```
+const ExemplarMaxRunes = 64
+```
 
+## 变量 ##
+DefaultRegisterer 和 DefaultGatherer 是 Registerer 和 Gatherer 接口的实现，该包中的许多便利功能都起作用。
+```
+var (
+ 	DefaultRegisterer Registerer = defaultRegistry
+ 	DefaultGatherer    Gatherer    = defaultRegistry
+ )
+```
+DefBuckets 是默认的直方图存储桶。默认存储桶专门用于广泛测量网络服务的响应时间（以秒为单位）。(然而更多的情况下，需要定义针对用例定制的存储桶。）
+```
+var (
+ 	DefBuckets = [] float64 {.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
+ )
+```
