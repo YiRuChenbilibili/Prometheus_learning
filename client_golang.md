@@ -14,10 +14,12 @@ import (
 )
 
 var (
+	//计数器
 	cpuTemp = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "cpu_temperature_celsius",
 		Help: "Current temperature of the CPU.",
 	})
+	//仪表
 	hdFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "hd_errors_total",
@@ -28,7 +30,7 @@ var (
 )
 
 func init() {
-	// 必须注册指标才能公开:
+	// 必须注册指标才能公开,否则HTTPServer找不到任何的Collector实例
 	prometheus.MustRegister(cpuTemp)
 	prometheus.MustRegister(hdFailures)
 }
@@ -43,4 +45,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
+这是一个完整的程序，它导出两个指标，一个 Gauge 和一个 Counter，后者带有一个附加标签以将其转换为（一维）向量。  
 ## 使用Client_golang构建Exporter程序 ##
+除了基本的度量类型 Gauge、Counter、Summary 和 Histogram 之外，Prometheus 数据模型的一个非常重要的部分是沿着称为标签的维度对样本进行分区，从而产生度量向量。基本类型是 GaugeVec、CounterVec、SummaryVec 和 HistogramVec。     
+虽然只有基本的度量类型实现了 Metric 接口，但度量和它们的向量版本都实现了 Collector 接口。一个 Collector 管理多个 Metrics 的收集，但为了方便起见，一个 Metric 也可以“收集自己”。需要注意，Gauge、Counter、Summary 和 Histogram 本身是接口，而 GaugeVec、CounterVec、SummaryVec 和 HistogramVec 不是。      
+要创建 Metrics 及其矢量版本的实例，则需要一个合适的Opts 结构，即 GaugeOpts、CounterOpts、SummaryOpts 或 HistogramOpts。
