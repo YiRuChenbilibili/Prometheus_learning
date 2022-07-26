@@ -27,20 +27,23 @@ func ExponentialBuckets(start, factor float64, count int) []float64
 ExponentialBuckets 创建“计数”桶，其中最低桶的上限为“开始”，每个后续桶的上限是“因子”乘以前一个桶的上限。最后的 +Inf 桶不计算在内，也不包含在返回的切片中。返回的切片用于 HistogramOpts 的 Buckets 字段。
 
 如果 'count' 为 0 或负数，如果 'start' 为 0 或负数，或者如果 'factor' 小于或等于 1，则函数会发生恐慌。   
+
 **ExponentialBucketsRange**    
 ```
 func ExponentialBucketsRange(min, max float64 , count int ) [] float64
 ```
 ExponentialBucketsRange 创建“count”个桶，其中最低桶是“min”，最高桶是“max”。最后的 +Inf 桶不计算在内，也不包含在返回的切片中。返回的切片用于 HistogramOpts 的 Buckets 字段。
 
-如果 'count' 为 0 或负数，如果 'min' 为 0 或负数，该函数会发生恐慌。
+如果 'count' 为 0 或负数，如果 'min' 为 0 或负数，该函数会发生恐慌。   
+
 **LinearBuckets**
 ```
 func LinearBuckets(start, width float64, count int) []float64
 ```
 LinearBuckets 创建“count”个桶，每个“width”宽，其中最低桶的上限为“start”。最后的 +Inf 桶不计算在内，也不包含在返回的切片中。返回的切片用于 HistogramOpts 的 Buckets 字段。
 
-如果 'count' 为零或负数，该函数会发生恐慌。
+如果 'count' 为零或负数，该函数会发生恐慌。  
+
 **MakeLabelPair**
 ```
 func MakeLabelPairs(desc *Desc, labelValues []string) []*dto.LabelPair
@@ -48,6 +51,7 @@ func MakeLabelPairs(desc *Desc, labelValues []string) []*dto.LabelPair
 MakeLabelPairs 是一个辅助函数，用于从提供的 Desc 中的变量和常量标签创建 protobuf LabelPairs。变量标签的值由 labelValues 切片定义，该切片必须与 Desc 中对应的变量标签的顺序相同。
 
 仅自定义 Metric 实现需要此功能。请参阅 MetricVec 示例。    
+
 **MustRegister**
 ```
 //cs为对应[]Collector的切片类型
@@ -56,19 +60,38 @@ func MustRegister(cs ...Collector)
 MustRegister 将提供的收集器注册到 DefaultRegisterer 并在发生任何错误时发生恐慌。
 
 MustRegister 是 DefaultRegisterer.MustRegister(cs...) 的快捷方式。    
+
 **NewPidFileFn**
 ```
 func NewPidFileFn(pidFilePath string ) func() ( int , error )
 ```
-NewPidFileFn 返回一个从指定文件中检索 pid 的函数。它旨在用于 ProcessCollectorOpts 中的 PidFn 字段。    
+NewPidFileFn 返回一个从指定文件中检索 pid 的函数。它旨在用于 ProcessCollectorOpts 中的 PidFn 字段。  
+
 **Register**
 ```
 func Register(c Collector) error
 ```
 Register 使用 DefaultRegisterer 注册提供的收集器。
 
-Register 是 DefaultRegisterer.Register(c) 的快捷方式。  
-示例：
+Register 是 DefaultRegisterer.Register(c) 的快捷方式。
+
+**Unregister**
+```
+func Unregister(c Collector) bool
+```
+取消注册会从 DefaultRegisterer 中删除提供的收集器的注册。
+
+Unregister 是 DefaultRegisterer.Unregister(c) 的快捷方式。 
+
+**WriteToTextfile**
+```
+func WriteToTextfile(filename string, g Gatherer) error
+```
+WriteToTextfile 在提供的 Gatherer 上调用 Gather，将结果编码为 Prometheus 文本格式，并将其写入临时文件。成功后，临时文件将重命名为提供的文件名。
+
+这旨在与节点导出器的文本文件收集器一起使用。请注意，节点导出器希望文件名以“.prom”为后缀。   
+
+## 示例 ##
 ```
 package main
 
