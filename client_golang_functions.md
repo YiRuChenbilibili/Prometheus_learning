@@ -108,6 +108,9 @@ func main() {
 			Name:      "completed_tasks_total",
 			Help:      "Total number of tasks completed.",
 		},
+		//为指标的每个特征维度定义一个label，一个label本质上就是一组键值对。
+		//一个指标可以和多个label相关联，而一个指标和一组具体的label可以唯一确定一条时间序列。
+		//[]string{"worker_id","type"}
 		[]string{"worker_id"},
 	)
 
@@ -152,7 +155,7 @@ func main() {
 	}
 	// Finally it worked!
 
-	// workers必须告诉taskCounterVec他们的id来增加度量向量中正确元素。
+	// workers必须告诉taskCounterVec他们的worker_id来增加度量向量中正确元素。
 	taskCounterVec.WithLabelValues("42").Inc() // Code from worker 42.
 
 	// 每个worker也可以在周围保留一个对自己counter元素的引用。 在工作程序的初始化时选择计数器。 
@@ -169,13 +172,11 @@ func main() {
 		fmt.Println("notMyCounter is nil.")
 	}
 
-	// A different (and somewhat tricky) approach is to use
-	// ConstLabels. ConstLabels are pairs of label names and label values
-	// that never change. Each worker creates and registers an own Counter
-	// instance where the only difference is in the value of the
-	// ConstLabels. Those Counters can all be registered because the
-	// different ConstLabel values guarantee that each worker will increment
-	// a different Counter metric.
+	//另一种不同的(有点棘手的)方法是使用ConstLabels。 
+	//ConstLabels是永远不变的标签名称和标签值对。
+	//每个工作者创建并注册一个自己的Counter  
+	//实例中唯一不同的是ConstLabels的值。这些计数器都可以注册，因为  
+	//不同的ConstLabel值保证每个worker将增加一个不同的Counter度量。 
 	counterOpts := prometheus.CounterOpts{
 		Subsystem:   "worker_pool",
 		Name:        "completed_tasks",
@@ -188,13 +189,12 @@ func main() {
 	} else {
 		fmt.Println("taskCounterForWorker42 registered.")
 	}
-	// Obviously, in real code, taskCounterForWorker42 would be a member
-	// variable of a worker struct, and the "42" would be retrieved with a
-	// GetId() method or something. The Counter would be created and
-	// registered in the initialization code of the worker.
+	//显然，在实际代码中，taskCounterForWorker42将是一个worker结构的成员变量，
+	//而“42”将通过GetId()方法或其他方法检索。 
+	//Counter将被创建并注册到工作者的初始化代码中。 
 
-	// For the creation of the next Counter, we can recycle
-	// counterOpts. Just change the ConstLabels.
+	//为了创建下一个Counter，我们可以循环使用  
+	//counterOpts。 只需更改ConstLabels。
 	counterOpts.ConstLabels = prometheus.Labels{"worker_id": "2001"}
 	taskCounterForWorker2001 := prometheus.NewCounter(counterOpts)
 	if err := prometheus.Register(taskCounterForWorker2001); err != nil {
