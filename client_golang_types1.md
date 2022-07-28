@@ -163,4 +163,78 @@ func main() {
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+``` 
+##  Type Counter ##
 ```
+type Counter interface {
+	Metric 
+	Collector 
+	// Inc 将计数器递增 1。使用 Add 将其递增
+	// 非负值。
+	Inc() 
+	// Add 将给定值添加到计数器。如果值为 <  0 ，它会恐慌。 
+	Add( float64 ) 
+}	
+```
+Counter 是一个 Metric，它代表一个只会上升的单个数值。这意味着它不能用于计算数量也可能下降的项目，例如当前运行的 goroutine 的数量。这些“计数器”由Gauges表示。
+计数器通常用于对服务的请求、完成的任务、发生的错误等进行计数。要创建 Counter 实例，需要使用 NewCounter。    
+**func NewCounter**
+```
+func NewCounter(opts CounterOpts) Counter
+```
+NewCounter 根据提供的 CounterOpts 创建一个新的 Counter。返回的实现还实现了 ExemplarAdder。
+## type CounterFunc ##
+```
+type CounterFunc interface {
+	Metric
+	Collector
+}
+```
+CounterFunc 是一个计数器，其值在收集时通过调用提供的函数来确定。要创建 CounterFunc 实例，使用 NewCounterFunc。     
+
+**func NewCounterFunc**
+```
+func NewCounterFunc(opts CounterOpts , function func() float64 ) CounterFunc
+```
+NewCounterFunc 基于提供的 CounterOpts 创建一个新的 CounterFunc。报告的值是通过从 Write 方法中调用给定函数来确定的。
+
+## type CounterOpts ##
+```
+type CounterOpts Opts
+```
+CounterOpts 是 Opts 的别名。
+## type CounterVec ##
+```
+type CounterVec struct {
+	*MetricVec
+}
+```
+CounterVec 是一个Collector，它捆绑了一组Counters，这些Counter都共享相同的 Desc，但它们的变量标签具有不同的值。如果您想计算按不同维度划分的同一事物（例如 HTTP 请求的数量，按响应代码和方法划分），则使用此方法。使用 NewCounterVec 创建实例。
+
+**示例**
+package main
+
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	httpReqs := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "How many HTTP requests processed, partitioned by status code and HTTP method.",
+		},
+		[]string{"code", "method"},
+	)
+	prometheus.MustRegister(httpReqs)
+
+	httpReqs.WithLabelValues("404", "POST").Add(42)
+
+	m := httpReqs.WithLabelValues("200", "GET")
+	for i := 0; i < 1000000; i++ {
+		m.Inc()
+	}
+
+	httpReqs.DeleteLabelValues("200", "GET")
+	httpReqs.Delete(prometheus.Labels{"method": "GET", "code": "200"})
+}
