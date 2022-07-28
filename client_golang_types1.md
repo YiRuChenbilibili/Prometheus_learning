@@ -317,7 +317,7 @@ humidity_percent{location="inside"} 33.2
 # HELP temperature_kelvin Temperature in Kelvin.
 temperature_kelvin{location="somewhere else"} 4.5
 `
-
+	//将指标收集到一个按字典顺序排序的切片中
 	parseText := func() ([]*dto.MetricFamily, error) {
 		parsed, err := parser.TextToMetricFamilies(strings.NewReader(text))
 		if err != nil {
@@ -329,12 +329,15 @@ temperature_kelvin{location="somewhere else"} 4.5
 		}
 		return result, nil
 	}
-
+	//定义一个采集数据的采集器集合，它可以合并多个不同的采集器数据到一个结果集合中
 	gatherers := prometheus.Gatherers{
-		reg,
-		prometheus.GathererFunc(parseText),
+		reg,//自定义的采集器1
+		//type GathererFunc func() ([]*dto.MetricFamily, error)
+		//将函数parseText转换为 Gatherer.
+		prometheus.GathererFunc(parseText),// // 自定义的采集器2
 	}
-
+`	
+	//func (gs Gatherers ) Gather() ([]* dto . MetricFamily , error )
 	gathering, err := gatherers.Gather()
 	if err != nil {
 		fmt.Println(err)
