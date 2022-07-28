@@ -31,6 +31,7 @@ func main() {
 	}
 	reqCounter.Inc()
 }
+
 ```
 **func (AlreadyRegisteredError) Error**
 ```
@@ -245,5 +246,136 @@ func main() {
 	//从vector中删除一个度量(不同的两种方法)
 	httpReqs.DeleteLabelValues("200", "GET")
 	httpReqs.Delete(prometheus.Labels{"method": "GET", "code": "200"})
+}
+```
+## type Desc ##
+```
+type Desc struct {
+	// contains filtered or unexported fields
+}
+```
+Desc 是每个 Prometheus Metric 使用的描述符。它本质上是 Metric 的不可变元数据。此包中包含的常规 Metric 实现在后台管理它们的 Desc。如果用户使用 ExpvarCollector 或自定义Collector和Metric等高级功能，他们只需要处理 Desc。     
+如果在同一注册表中注册的描述符具有相同的完全限定名称，则它们必须满足某些一致性和唯一性标准：它们必须在每个 constLabels 和 variableLabels 中具有相同的帮助字符串和相同的标签名称（也称为标签尺寸），但它们constLabels 的值必须不同。     
+
+**func NewDesc**
+```
+func NewDesc(fqName, help string , variableLabels [] string , constLabels Labels ) * Desc
+```
+NewDesc 分配并初始化一个新的 Desc。错误记录在 Desc 中，并将在注册时报告。如果不应设置此类标签，则 variableLabels 和 constLabels 可以为 nil。fqName 不能为空。     
+
+## type Gatherer ##
+```
+type Gatherer interface {
+	//将收集到的指标收集到一个按字典顺序排序的切片中 
+	Gather() ([]*dto.MetricFamily, error)
+}
+```
+Gatherer 是注册表中负责将收集到的指标收集到多个 MetricFamilies 中的部分的接口。Gatherer 接口具有与 Registerer 接口相同的一般含义。    
+```
+type Gatherers []Gatherer
+```
+Gatherers 是 Gatherer 实例的一部分，它实现了 Gatherer 接口本身。它的 Gather 方法按顺序调用切片中所有 Gatherer 上的 Gather，并返回合并后的结果。   
+Gatherers 可用于合并来自多个注册表的 Gather 结果。它还提供了一种将现有 MetricFamily protobufs 直接注入到收集中的方法，方法是使用 Gather 方法创建一个自定义 Gatherer，该方法简单地返回现有 MetricFamily protobufs。   
+
+**示例**
+```
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+
+	"github.com/prometheus/common/expfmt"
+
+	dto "github.com/prometheus/client_model/go"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	reg := prometheus.NewRegistry()
+	temp := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "temperature_kelvin",
+			Help: "Temperature in Kelvin.",
+		},
+		[]string{"location"},
+	)
+	reg.MustRegister(temp)
+	temp.WithLabelValues("outside").Set(273.14)
+	temp.WithLabelValues("inside").Set(298.44)
+
+	var parser expfmt.TextParser
+
+	text := `
+# TYPE humidity_percent gauge
+# HELP humidity_percent Humidity in %.
+humidity_percent{location="outside"} 45.4
+humidity_percent{location="inside"} 33.2
+# TYPE temperature_kelvin gauge
+# HELP temperature_kelvin Temperature in Kelvin.
+temperature_kelvin{location="somewhere else"} 4.5
+`
+
+	parseText := func() ([]*dto.MetricFamily, error) {
+		parsed, err := parser.TextToMetricFamilies(strings.NewReader(text))
+		if err != nil {
+			return nil, err
+		}
+		var result []*dto.MetricFamily
+		for _, mf := range parsed {
+			result = append(result, mf)
+		}
+		return result, nil
+	}
+
+	gatherers := prometheus.Gatherers{
+		reg,
+		prometheus.GathererFunc(parseText),
+	}
+
+	gathering, err := gatherers.Gather()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	out := &bytes.Buffer{}
+	for _, mf := range gathering {
+		if _, err := expfmt.MetricFamilyToText(out, mf); err != nil {
+			panic(err)
+		}
+	}
+	fmt.Print(out.String())
+	fmt.Println("----------")
+
+	// Note how the temperature_kelvin metric family has been merged from
+	// different sources. Now try
+	text = `
+# TYPE humidity_percent gauge
+# HELP humidity_percent Humidity in %.
+humidity_percent{location="outside"} 45.4
+humidity_percent{location="inside"} 33.2
+# TYPE temperature_kelvin gauge
+# HELP temperature_kelvin Temperature in Kelvin.
+# Duplicate metric:
+temperature_kelvin{location="outside"} 265.3
+ # Missing location label (note that this is undesirable but valid):
+temperature_kelvin 4.5
+`
+
+	gathering, err = gatherers.Gather()
+	if err != nil {
+		fmt.Println(err)
+	}
+	// Note that still as many metrics as possible are returned:
+	out.Reset()
+	for _, mf := range gathering {
+		if _, err := expfmt.MetricFamilyToText(out, mf); err != nil {
+			panic(err)
+		}
+	}
+	fmt.Print(out.String())
+
 }
 ```
