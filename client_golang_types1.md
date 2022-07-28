@@ -230,6 +230,10 @@ func main() {
 	)
 	prometheus.MustRegister(httpReqs)
 	
+	//与GetMetricWithLabels类似，在 GetMetricWithLabels 会返回错误的地方出现恐慌。
+	//WithLabelValues返回给定标签值切片的计数器（与 Desc 中的变量标签顺序相同）。
+	//如果第一次访问该标签值组合，则会创建一个新计数器。
+	//可以在不使用返回的 Counter 的情况下调用此方法，仅创建新的 Counter，但将其保留为起始值 0。
 	//标签为"404", "POST"
 	httpReqs.WithLabelValues("404", "POST").Add(42)
 
