@@ -154,7 +154,7 @@ func main() {
 	NewClusterManager("db", reg)
 	NewClusterManager("ca", reg)
 
-	// 向自定义注册中心添加标准流程和Go指标。
+	// 向自定义注册中心添加标准流程和Go指标,添加 process 和 Go 运行时指标到我们自定义的注册表中。
 	reg.MustRegister(
 		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
 		prometheus.NewGoCollector(),
