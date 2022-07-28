@@ -212,6 +212,7 @@ type CounterVec struct {
 CounterVec 是一个Collector，它捆绑了一组Counters，这些Counter都共享相同的 Desc，但它们的变量标签具有不同的值。如果您想计算按不同维度划分的同一事物（例如 HTTP 请求的数量，按响应代码和方法划分），则使用此方法。使用 NewCounterVec 创建实例。
 
 **示例**
+```
 package main
 
 import (
@@ -238,3 +239,4 @@ func main() {
 	httpReqs.DeleteLabelValues("200", "GET")
 	httpReqs.Delete(prometheus.Labels{"method": "GET", "code": "200"})
 }
+```
