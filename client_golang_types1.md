@@ -220,6 +220,7 @@ import (
 )
 
 func main() {
+	//NewCounterVec是一个Collector,绑定了一组Counter（相同度量但具有不同标签值的多个实例的集合）
 	httpReqs := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -228,14 +229,16 @@ func main() {
 		[]string{"code", "method"},
 	)
 	prometheus.MustRegister(httpReqs)
-
+	
+	//标签为"404", "POST"
 	httpReqs.WithLabelValues("404", "POST").Add(42)
 
+	//标签为"200", "GET"
 	m := httpReqs.WithLabelValues("200", "GET")
 	for i := 0; i < 1000000; i++ {
 		m.Inc()
 	}
-
+	//从vector中删除一个度量(不同的两种方法)
 	httpReqs.DeleteLabelValues("200", "GET")
 	httpReqs.Delete(prometheus.Labels{"method": "GET", "code": "200"})
 }
