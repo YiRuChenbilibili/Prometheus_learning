@@ -86,6 +86,7 @@ func (c *ClusterManager) ReallyExpensiveAssessmentOfTheSystemState() (
 }
 
 // ClusterManagerCollector实现Collector接口
+//需要实现一个Describe和一个collect
 type ClusterManagerCollector struct {
 	ClusterManager *ClusterManager
 }
