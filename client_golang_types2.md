@@ -149,3 +149,51 @@ Error将包含的错误格式化为项目符号列表，前面是错误总数。
 func (errs MultiError ) MaybeUnwrap() error
 ```
 如果 len(errs) 为 0，MaybeUnwrap 返回 nil。如果 len(errs 为 1)，它返回第一个且唯一包含的错误作为错误。在所有其他情况下，它直接返回 MultiError。这有助于以仅在需要时使用 MultiError 的方式返回 MultiError。
+
+## type Observer ##
+```
+type Observer interface {
+	Observe(float64)
+}
+```
+Observer是封装了Observe方法的接口，Histogram和Summary使用该方法来添加观察结果。 
+
+**type ObserverFunc**
+```
+type ObserverFunc func(float64)
+```
+`ObserverFunc` 类型是一个适配器，允许将普通函数用作观察者。如果 f 是具有适当签名的函数，则 `ObserverFunc(f)` 是调用 f 的 Observer。
+此适配器通常与 `Timer` 类型结合使用，一般有两种用例：最常见的一种是使用 `Gauge` 作为 `Timer` 的 Observer;更高级的用例是创建一个函数，动态决定使用哪个 Observer 来观察持续时间。
+
+**func (ObserverFunc) Observe**
+```
+func (f ObserverFunc) Observe(value float64)
+```
+`Observe`调用 f(value)。它实现了普通函数的`Observer`。
+
+## type ObserverVec ##
+```
+type ObserverVec interface {
+	GetMetricWith(Labels) (Observer, error)
+	GetMetricWithLabelValues(lvs ...string) (Observer, error)
+	With(Labels) Observer
+	WithLabelValues(...string) Observer
+	CurryWith(Labels) (ObserverVec, error)
+	MustCurryWith(Labels) ObserverVec
+
+	Collector
+}
+```
+ObserverVec 是由 `HistogramVec` 和 `SummaryVec` 实现的接口。
+
+## type Registerer ##
+```
+type Registerer interface {
+	Register(Collector) error
+	
+	// MustRegister的工作原理类似于Register，但可以注册任意数量的collector。
+	MustRegister(...Collector)
+	
+	Unregister(Collector) bool
+}
+```
