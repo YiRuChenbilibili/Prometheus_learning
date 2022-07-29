@@ -109,7 +109,7 @@ func main() {
 		[]string{"species"},
 	)
 
-	// Simulate some observations.
+	// 模拟一些 observations.
 	for i := 0; i < 1000; i++ {
 		temps.WithLabelValues("litoria-caerulea").Observe(30 + math.Floor(120*math.Sin(float64(i)*0.1))/10)
 		temps.WithLabelValues("lithobates-catesbeianus").Observe(32 + math.Floor(100*math.Cos(float64(i)*0.11))/10)
@@ -129,5 +129,96 @@ func main() {
 	}
 	fmt.Println(proto.MarshalTextString(metricFamilies[0]))
 
+}
+```
+## type Timer ##
+```
+type Timer struct {
+	// contains filtered or unexported fields
+}
+```
+Timer 是时间函数的辅助类型。使用 NewTimer 创建新实例
+
+**示例（简单）**
+```
+package main
+
+import (
+	"math/rand"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	requestDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "example_request_duration_seconds",
+		Help:    "Histogram for the runtime of a simple example function.",
+		Buckets: prometheus.LinearBuckets(0.01, 0.01, 10),
+	})
+)
+
+func main() {
+	// 模拟一些observationstimer times在这个示例函数中。 
+	//它使用了直方图，但也可以使用摘要，因为两者都实现了Observer 
+	//NewTimer 创建一个新的 Timer。提供的 Observer 用于观察持续时间（以秒为单位）。
+	timer := prometheus.NewTimer(requestDuration)
+	defer timer.ObserveDuration()
+
+	// Do something here that takes time.
+	time.Sleep(time.Duration(rand.NormFloat64()*10000+50000) * time.Microsecond)
+}
+```
+**示例（复杂）
+```
+package main
+
+import (
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	// apiRequestDuration跟踪每个HTTP状态分开的持续时间  
+	// class (1xx, 2xx，…) 这就产生了相当多的时间序列
+	// 分区的请求计数器状态代码通常是OK的，因为每个计数器只创建一次  
+	// 直方图的开销要大得多，所以要小心分区 
+	apiRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "api_request_duration_seconds",
+			Help:    "Histogram for the request duration of the public API, partitioned by status class.",
+			Buckets: prometheus.ExponentialBuckets(0.1, 1.5, 5),
+		},
+		[]string{"status_class"},
+	)
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	status := http.StatusOK
+	// ObserverFunc被延迟的ObserveDuration调用，并决定调用哪个Histogram的Observe方法。 
+	timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
+		switch {
+		//不同的状态码
+		case status >= 500: // Server error.
+			apiRequestDuration.WithLabelValues("5xx").Observe(v)
+		case status >= 400: // Client error.
+			apiRequestDuration.WithLabelValues("4xx").Observe(v)
+		case status >= 300: // Redirection.
+			apiRequestDuration.WithLabelValues("3xx").Observe(v)
+		case status >= 200: // Success.
+			apiRequestDuration.WithLabelValues("2xx").Observe(v)
+		default: // Informational.
+			apiRequestDuration.WithLabelValues("1xx").Observe(v)
+		}
+	}))
+	defer timer.ObserveDuration()
+
+	// Handle the request. Set status accordingly.
+	// ...
+}
+
+func main() {
+	http.HandleFunc("/api", handler)
 }
 ```
