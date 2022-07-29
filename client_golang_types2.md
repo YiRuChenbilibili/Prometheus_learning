@@ -93,4 +93,4 @@ func NewHistogramVec(opts HistogramOpts , labelNames [] string ) * HistogramVec
 NewHistogramVec 基于提供的 HistogramOpts 创建一个新的 HistogramVec，并按给定的标签名称进行分区。
 
 *Histogram与Counter及Gauge一样，使用CurryWith/ MustCurryWith 返回一个带有提供标签的向量;      
-使用GetMetricWith/with返回给定标签的直方图（标签名称必须与 Desc 中的变量标签匹配）；使用 GetMetricWithLabelValues/WithLabelValues返回给定标签值切片的直方图（与 Desc 中的变量标签顺序相同）（如果第一次访问该标签，则会创建一个新的直方图。）
+使用GetMetricWith/with返回给定标签的直方图（标签名称必须与 Desc 中的变量标签匹配）；使用 GetMetricWithLabelValues/WithLabelValues返回给定标签值切片的直方图（与 Desc 中的变量标签顺序相同）（如果第一次访问该标签，则会创建一个新的直方图。）*
