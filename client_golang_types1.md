@@ -382,3 +382,172 @@ temperature_kelvin 4.5
 
 }
 ```
+## type Gauge ##
+```
+type Gauge interface {
+	 Metric 
+	Collector 
+	// Set 将 Gauge 设置为任意值。	
+	Set( float64 )
+ 	// Inc 将 Gauge 增加 1。使用 Add 将其增加任意值。
+	Inc() 
+	// Dec 将 Gauge 递减 1。使用 Sub 将其递减任意值。
+	Dec() 
+	// Add 将给定值添加到 Gauge。（该值可以是负数，导致 Gauge 减小。） 
+	Add(float64)
+	// Sub 从 Gauge 中减去给定值。（该值可以是负数，导致 Gauge 增加。） 
+	Sub(float64)	
+	// SetToCurrentTime 将 Gauge 设置为当前的 Unix 时间（以秒为单位）。
+	SetToCurrentTime()
+}
+```
+Gauge是一个Metric，代表一个可以任意上下浮动的数值。Gauge 通常用于测量值，例如温度或当前内存使用情况，但也用于可以上下波动的“计数”，例如正在运行的 goroutine 的数量。
+
+要创建 Gauge 实例，使用 NewGauge。
+
+**示例**
+```
+package main
+
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	//NewGauge 基于提供的 GaugeOpts 创建一个新的 Gauge。
+	opsQueued := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "our_company",
+		Subsystem: "blob_storage",
+		Name:      "ops_queued",
+		Help:      "Number of blob storage operations waiting to be processed.",
+	})
+	prometheus.MustRegister(opsQueued)
+
+	// 10 operations queued by the goroutine managing incoming requests.
+	opsQueued.Add(10)
+	// A worker goroutine has picked up a waiting operation.
+	opsQueued.Dec()
+	// And once more...
+	opsQueued.Dec()
+}
+```
+**type GaugeFunc**
+```
+type GaugeFunc interface {
+	Metric
+	Collector
+}
+```
+GaugeFunc 是一个 Gauge，其值在收集时通过调用提供的函数来确定。要创建 GaugeFunc 实例，使用 NewGaugeFunc:
+```
+package main
+
+import (
+	"fmt"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	// primaryDB和secondaryDB代表了想要检测的两个示例*sql.DB连接。 
+	var primaryDB, secondaryDB interface {
+		Stats() struct{ OpenConnections int }
+	}
+	//func NewGaugeFunc(opts GaugeOpts , function func() float64 ) GaugeFunc
+	//NewGaugeFunc 基于提供的 GaugeOpts 创建一个新的 GaugeFunc。
+	if err := prometheus.Register(prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace:   "mysql",
+			Name:        "connections_open",
+			Help:        "Number of mysql connections open.",
+			ConstLabels: prometheus.Labels{"destination": "primary"},
+		},
+		func() float64 { return float64(primaryDB.Stats().OpenConnections) },
+	)); err == nil {
+		fmt.Println(`GaugeFunc 'connections_open' for primary DB connection registered with labels {destination="primary"}`)
+	}
+
+	if err := prometheus.Register(prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace:   "mysql",
+			Name:        "connections_open",
+			Help:        "Number of mysql connections open.",
+			ConstLabels: prometheus.Labels{"destination": "secondary"},
+		},
+		func() float64 { return float64(secondaryDB.Stats().OpenConnections) },
+	)); err == nil {
+		fmt.Println(`GaugeFunc 'connections_open' for secondary DB connection registered with labels {destination="secondary"}`)
+	}
+
+	// 注意，我们可以用相同的度量名称注册多个GaugeFunc
+	//只要它们的常量标签const labels是一致的。
+
+}
+```
+```
+package main
+
+import (
+	"fmt"
+	"runtime"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	if err := prometheus.Register(prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Subsystem: "runtime",
+			Name:      "goroutines_count",
+			Help:      "Number of goroutines that currently exist.",
+		},
+		func() float64 { return float64(runtime.NumGoroutine()) },
+	)); err == nil {
+		fmt.Println("GaugeFunc 'goroutines_count' registered.")
+	}
+	//注意，goroutines的计数是一个量规(而不是计数器)，因为它可以上下浮动。
+
+
+}
+```
+**type GaugeVec**
+```
+type GaugeVec struct {
+	*MetricVec
+}
+```
+GaugeVec 是一个收集器，它捆绑了一组仪表，这些仪表都共享相同的 Desc，但它们的变量标签具有不同的值。如果您想计算按不同维度分区的同一事物（例如排队的操作数、按用户和操作类型分区），则使用此选项。使用 NewGaugeVec 创建实例:
+```
+package main
+
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	//func NewGaugeVec(opts GaugeOpts , labelNames [] string ) * GaugeVec
+	//NewGaugeVec 根据提供的 GaugeOpts 创建一个新的 GaugeVec，并按给定的标签名称进行分区。
+	opsQueued := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "our_company",
+			Subsystem: "blob_storage",
+			Name:      "ops_queued",
+			Help:      "Number of blob storage operations waiting to be processed, partitioned by user and type.",
+		},
+		[]string{
+			// Which user has requested the operation?
+			"user",
+			// Of what type is the operation?
+			"type",
+		},
+	)
+	prometheus.MustRegister(opsQueued)
+
+	//  返回给定标签值切片的 Gauge（与 Desc 中的变量标签顺序相同）。如果第一次访问该标签值组合，则会创建一个新的 Gauge。
+	//func (v * GaugeVec ) WithLabelValues(lvs ... string ) Gauge
+	opsQueued.WithLabelValues("bob", "put").Add(4)
+	// 使用compactwithlabels使用map增加一个值。 更详细，但顺序不再重要。
+	//func (v * GaugeVec ) With(labels Labels ) Gauge
+	opsQueued.With(prometheus.Labels{"type": "delete", "user": "alice"}).Inc()
+}
+```
