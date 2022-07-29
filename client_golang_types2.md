@@ -126,3 +126,26 @@ type MetricVec struct {
 ```
 MetricVec 是一个收集器，用于捆绑标签值不同的同名指标。MetricVec 不直接使用，而是作为给定度量类型的向量实现的构建块，例如 GaugeVec、CounterVec、SummaryVec 和 HistogramVec。它被导出，以便可用于**自定义 Metric 实现。**      
 要为自定义 Metric Foo 创建 FooVec，请在 FooVec 中嵌入指向 MetricVec 的指针，并使用 NewMetricVec 对其进行初始化。同时要给自定义的Metric添加GetMetricWithLabelValues/GetMetricWith/CurryWith等等方法以及便捷方法。
+## type MultiError ##
+```
+type MultiError []error
+```
+MultiError 是实现错误接口的错误片段。Gatherer 使用它来报告 MetricFamily 收集期间的多个错误。
+
+**func (\*MultiError) Append**
+```
+func (errs *MultiError) Append(err error)
+```
+如果不为零，则附加附加提供的错误。     
+
+**func (MultiError) Error**
+```
+func (errs MultiError) Error() string
+```
+Error将包含的错误格式化为项目符号列表，前面是错误总数。请注意，这会导致多行字符串。    
+
+**func (MultiError) MaybeUnwrap**
+```
+func (errs MultiError ) MaybeUnwrap() error
+```
+如果 len(errs) 为 0，MaybeUnwrap 返回 nil。如果 len(errs 为 1)，它返回第一个且唯一包含的错误作为错误。在所有其他情况下，它直接返回 MultiError。这有助于以仅在需要时使用 MultiError 的方式返回 MultiError。
