@@ -169,7 +169,7 @@ func main() {
 	time.Sleep(time.Duration(rand.NormFloat64()*10000+50000) * time.Microsecond)
 }
 ```
-**示例（复杂）
+**示例（复杂）**
 ```
 package main
 
@@ -201,6 +201,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		switch {
 		//不同的状态码
 		case status >= 500: // Server error.
+		//Observe添加观察值v
 			apiRequestDuration.WithLabelValues("5xx").Observe(v)
 		case status >= 400: // Client error.
 			apiRequestDuration.WithLabelValues("4xx").Observe(v)
