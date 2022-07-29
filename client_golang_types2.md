@@ -94,3 +94,35 @@ NewHistogramVec 基于提供的 HistogramOpts 创建一个新的 HistogramVec，
 
 *Histogram与Counter及Gauge一样，使用CurryWith/ MustCurryWith 返回一个带有提供标签的向量;      
 使用GetMetricWith/with返回给定标签的直方图（标签名称必须与 Desc 中的变量标签匹配）；使用 GetMetricWithLabelValues/WithLabelValues返回给定标签值切片的直方图（与 Desc 中的变量标签顺序相同）（如果第一次访问该标签，则会创建一个新的直方图。）*
+
+## type Labels ##
+```
+type Labels map[string]string
+```
+Labels 表示标签名称 -> 值映射的集合。这种类型通常与度量向量收集器的 With(Labels) 和 GetMetricWith(Labels) 方法一起使用，例如：
+```
+myVec.With(Labels{"code": "404", "method": "GET"}).Add(42)
+```
+另一个用例是在 Opts 中指定常量标签对或创建 Desc。
+
+## type Metric ##
+```
+type Metric interface {
+	// Desc 返回 Metric 的描述符。
+	Desc() *Desc
+	// 建议按字典顺序对标签进行排序。Write的调用者仍然应该确保排序，如果它们依赖于排序的话。 
+	Write(*dto.Metric) error
+}
+```
+Metric 对单个样本值进行建模，并将其元数据导出到 Prometheus。此包中 Metric的实现包括 Gauge、Counter、Histogram、Summary 和 Untyped。     
+**func NewConstHistogram/func NewConstMetric/func NewConstSummary**        
+NewConstHistogram 返回一个表示 Prometheus 直方图的指标，该直方图的计数、总和和存储桶计数具有固定值。由于这些参数无法更改，因此返回值未实现 Histogram 接口（仅实现 Metric 接口）。此软件包的用户在常规操作中不会有太多用处。但是，在实现自定义收集器时，它可用作即时生成的一次性指标，以在 Collect 方法中将其发送到 Prometheus。其它几个函数也是相似的作用。     
+
+**type MetricVec** 
+```
+type MetricVec struct {
+	 // 包含过滤或未导出的字段
+}
+```
+MetricVec 是一个收集器，用于捆绑标签值不同的同名指标。MetricVec 不直接使用，而是作为给定度量类型的向量实现的构建块，例如 GaugeVec、CounterVec、SummaryVec 和 HistogramVec。它被导出，以便可用于**自定义 Metric 实现。**      
+要为自定义 Metric Foo 创建 FooVec，请在 FooVec 中嵌入指向 MetricVec 的指针，并使用 NewMetricVec 对其进行初始化。同时要给自定义的Metric添加GetMetricWithLabelValues/GetMetricWith/CurryWith等等方法以及便捷方法。
