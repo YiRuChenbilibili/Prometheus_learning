@@ -69,7 +69,7 @@ type SummaryOpts struct {
 	// 目标用它们各自的绝对误差定义了分位数秩估计 
 	Objectives map[float64]float64
 
-	// MaxAge定义了observe与summary相关的持续时间 
+	// MaxAge定义了observations与summary相关的持续时间 
 	MaxAge time.Duration
 
 	// AgeBuckets是用来从summary中排除比MaxAge更老的观察结果的桶的数量。 
@@ -77,5 +77,57 @@ type SummaryOpts struct {
 
 	// BufCap定义了默认的样本流缓冲区大小 
 	BufCap uint32
+}
+```
+SummaryOpts 捆绑了用于创建摘要指标的选项。必须将 Name 设置为非空字符串。虽然所有其他字段都是可选的并且可以安全地保留为零值，但建议设置帮助字符串并将 Objectives 字段显式设置为所需的值。
+## Type SummaryVec ##
+```
+type SummaryVec struct {
+	*MetricVec
+}
+```
+SummaryVec 是一个收集器，它捆绑了一组共享相同 Desc 的汇总，但它们的变量标签具有不同的值。如果想计算按不同维度划分的同一事物（例如 HTTP 请求延迟，按状态代码和方法划分），则使用此选项。使用 NewSummaryVec 创建实例:
+```
+package main
+
+import (
+	"fmt"
+	"math"
+
+	"github.com/golang/protobuf/proto"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+func main() {
+	temps := prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Name:       "pond_temperature_celsius",
+			Help:       "The temperature of the frog pond.",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		},
+		[]string{"species"},
+	)
+
+	// Simulate some observations.
+	for i := 0; i < 1000; i++ {
+		temps.WithLabelValues("litoria-caerulea").Observe(30 + math.Floor(120*math.Sin(float64(i)*0.1))/10)
+		temps.WithLabelValues("lithobates-catesbeianus").Observe(32 + math.Floor(100*math.Cos(float64(i)*0.11))/10)
+	}
+
+	// 创建一个不带任何observations的Summary
+	temps.WithLabelValues("leiopelma-hochstetteri")
+
+	// 为了演示检查汇总向量的状态
+ 	//通过向自定义注册中心注册它，然后让它收集指标。
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(temps)
+
+	metricFamilies, err := reg.Gather()
+	if err != nil || len(metricFamilies) != 1 {
+		panic("unexpected behavior of custom test registry")
+	}
+	fmt.Println(proto.MarshalTextString(metricFamilies[0]))
+
 }
 ```
