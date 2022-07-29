@@ -197,3 +197,42 @@ type Registerer interface {
 	Unregister(Collector) bool
 }
 ```
+Registerer （注册器）是注册表中负责注册和注销部分的接口。自定义注册表的用户应使用 Registerer 作为注册类型（而不是直接使用 Registry 类型）。这样，他们就可以自由地使用自定义注册器实现（例如，用于测试目的）。
+
+**func WrapRegistererWith**
+```
+func WrapRegistererWith(labels Labels , reg Registerer ) Registerer
+```
+WrapRegistererWith 返回一个包装(提供的注册器)的注册器。使用返回的注册器注册的收集器将以修改的方式注册到包装的注册器。修改后的收集器将提供的标签添加到它收集的所有指标（作为 ConstLabels）。未经修改的 Collector 收集的 Metrics 不得重复任何这些标签。包装 nil 值是有效的，导致无操作注册器。
+
+**func WrapRegistererWithPrefix**
+```
+func WrapRegistererWithPrefix(prefix string, reg Registerer) Registerer
+```
+WrapRegistererWithPrefix 返回包装提供的注册器的注册器。使用返回的注册器注册的收集器将以修改的方式注册到包装的注册器。修改后的 Collector 将提供的前缀添加到它收集的所有 Metrics 的名称中。包装 nil 值是有效的，导致无操作注册器。
+
+WrapRegistererWithPrefix 在一个位置为子系统的所有指标添加前缀很有用。为了使这个工作，使用 WrapRegistererWithPrefix 返回的包装注册器注册子系统的度量。对所有公开的指标使用相同的前缀很少有用。
+
+## type Registry ##
+```
+type Registry struct {
+	// contains filtered or unexported fields
+}
+```
+Registry (注册表）注册 Prometheus 收集器，收集它们的指标，并将它们收集到 MetricFamilies 中以供展示。它实现了 Registerer 和 Gatherer。零值不可用。使用 NewRegistry 或 NewPedanticRegistry 创建实例。     
+
+**func NewPedanticRegistry**
+```
+func NewPedanticRegistry() *Registry
+```
+NewPedanticRegistry 返回一个注册表，该注册表在收集期间检查每个收集的 Metric 是否与其报告的 Desc 一致，以及 Desc 是否实际上已在注册表中注册。未经检查的收集器（那些其 Describe 方法不产生任何描述符的收集器）被排除在检查之外。
+
+**func NewRegistry**
+```
+func NewRegistry() *Registry
+```
+NewRegistry 创建一个新的 vanilla Registry，没有预先注册任何收集器。
+
+![image](https://user-images.githubusercontent.com/24589721/181715426-f5e303e3-ec0e-44c2-a850-e60aef75d5f2.png)
+
+
