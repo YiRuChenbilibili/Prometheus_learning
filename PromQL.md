@@ -20,6 +20,11 @@ PromQL还支持用户根据时间序列的标签匹配模式来对时间序列�
 ![image](https://user-images.githubusercontent.com/24589721/183388296-ba094564-7f5d-4cf5-88b4-b75b38f24ab0.png)     
 *通过区间向量表达式查询到的结果我们称为区间向量。*     
 
-**时间位移操作**
+**时间位移操作**      
+在瞬时向量表达式或者区间向量表达式中，都是以当前时间为基准。如果想查询5分钟前的瞬时样本数据，或昨天一天的区间内的样本数据时。可以使用位移操作，位移操作的关键字为offset：    
+``` nginx_http_requests_total[2m] offset 1d```       
+![image](https://user-images.githubusercontent.com/24589721/183390745-ca9a10fe-1f06-49f9-955e-8abfb0a001d8.png)
+
+
 
 
