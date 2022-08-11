@@ -37,6 +37,18 @@ avg(node_cpu) by (mode)
 # 按照主机查询各个主机的CPU使用率
 sum(sum(irate(node_cpu{mode!='idle'}[5m]))  / sum(irate(node_cpu[5m]))) by (instance)
 ```
+**合法的PromQL表达式**
+
+所有的PromQL表达式都必须至少包含一个指标名称(例如http_request_total)，或者一个不会匹配到空字符串的标签过滤器(例如{code="200"}):
+```
+http_request_total # 合法
+http_request_total{} # 合法
+{method="get"} # 合法
+```
+非法的表达式：
+```
+{job=~".*"} # 不合法
+```
 
 
 
