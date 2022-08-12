@@ -26,3 +26,23 @@ PromQL中内置的predict_linear(v range-vector, t scalar) 函数可以帮助系
 ```
 predict_linear(node_filesystem_free{job="node"}[2h], 4 * 3600) < 0
 ```
+
+## 统计Histogram指标的分位数 ##
+Histogram的分位数计算需要通过histogram_quantile(φ float, b instant-vector)函数进行计算。其中φ（0<φ<1）表示需要计算的分位数，如果需要计算中位数φ取值为0.5，以此类推即可。
+```
+# HELP http_request_duration_seconds request duration histogram
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.5"} 0
+http_request_duration_seconds_bucket{le="1"} 1
+http_request_duration_seconds_bucket{le="2"} 2
+http_request_duration_seconds_bucket{le="3"} 3
+http_request_duration_seconds_bucket{le="5"} 3
+http_request_duration_seconds_bucket{le="+Inf"} 3
+http_request_duration_seconds_sum 6
+http_request_duration_seconds_count 3
+```
+当计算9分位数时，使用如下表达式：
+```
+histogram_quantile(0.5, http_request_duration_seconds_bucket)
+```
+通过对Histogram类型的监控指标，用户可以轻松获取样本数据的分布情况。同时分位数的计算，也可以非常方便的用于评判当前监控指标的服务水平。
