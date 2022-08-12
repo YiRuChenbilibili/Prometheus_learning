@@ -35,4 +35,12 @@ topk和bottomk则用于对样本值进行排序，返回当前样本值前n位�
 ```
 topk(5, http_requests_total)
 ```
+![image](https://user-images.githubusercontent.com/24589721/184279886-499df93d-75c9-4d6b-b5b4-7a84d5c739b4.png)
+
+quantile用于计算当前样本数据值的分布情况quantile(φ, express)其中0 ≤ φ ≤ 1。
+
+例如，当φ为0.5时，即表示找到当前样本数据中的中位数：
+```
+quantile(0.5, http_requests_total)
+```
 
