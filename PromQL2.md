@@ -49,3 +49,40 @@ vector1 and vector2 会产生一个由vector1的元素组成的新的向量。�
 vector1 or vector2 会产生一个新的向量，该向量包含vector1中所有的样本数据，以及vector2中没有与vector1匹配到的样本数据。
 
 vector1 unless vector2 会产生一个新的向量，新向量中的元素由vector1中没有与vector2匹配的元素组成。
+
+## 匹配模式详解 ##
+向量与向量之间进行运算操作时会基于默认的匹配规则：依次找到与左边向量元素匹配（标签完全一致）的右边向量元素进行运算，如果没找到匹配元素，则直接丢弃。     
+在PromQL中有两种典型的匹配模式：一对一（one-to-one）,多对一（many-to-one）或一对多（one-to-many）。   
+
+**一对一匹配**       
+一对一匹配模式会从操作符两边表达式获取的瞬时向量依次比较并找到唯一匹配(标签完全一致)的样本值。默认情况下，使用表达式：     
+```
+vector1 <operator> vector2
+```
+在操作符两边表达式标签不一致的情况下，可以使用on(label list)或者ignoring(label list）来修改便签的匹配行为。使用ignoreing可以在匹配时忽略某些便签。而on则用于将匹配行为限定在某些便签之内。      
+```
+<vector expr> <bin-op> ignoring(<label list>) <vector expr>
+<vector expr> <bin-op> on(<label list>) <vector expr>
+```
+样例样本：
+```
+method_code:http_errors:rate5m{method="get", code="500"}  24
+method_code:http_errors:rate5m{method="get", code="404"}  30
+method_code:http_errors:rate5m{method="put", code="501"}  3
+method_code:http_errors:rate5m{method="post", code="500"} 6
+method_code:http_errors:rate5m{method="post", code="404"} 21
+
+method:http_requests:rate5m{method="get"}  600
+method:http_requests:rate5m{method="del"}  34
+method:http_requests:rate5m{method="post"} 120
+```
+PromQL表达式：
+```
+method_code:http_errors:rate5m{code="500"} / ignoring(code) method:http_requests:rate5m
+```
+*如果没有使用ignoring(code)，操作符两边表达式返回的瞬时向量中将找不到任何一个标签完全相同的匹配项。*
+结果：
+```
+{method="get"}  0.04            //  24 / 600
+{method="post"} 0.05            //   6 / 120
+```
