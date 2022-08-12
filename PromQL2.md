@@ -86,3 +86,25 @@ method_code:http_errors:rate5m{code="500"} / ignoring(code) method:http_requests
 {method="get"}  0.04            //  24 / 600
 {method="post"} 0.05            //   6 / 120
 ```
+**多对一和一对多匹配**     
+
+多对一和一对多两种匹配模式指的是“一”侧的每一个向量元素可以与"多"侧的多个元素匹配的情况。在这种情况下，必须使用group修饰符：group_left或者group_right来确定哪一个向量具有更高的基数（充当“多”的角色）。       
+```
+<vector expr> <bin-op> ignoring(<label list>) group_left(<label list>) <vector expr>
+<vector expr> <bin-op> ignoring(<label list>) group_right(<label list>) <vector expr>
+<vector expr> <bin-op> on(<label list>) group_left(<label list>) <vector expr>
+<vector expr> <bin-op> on(<label list>) group_right(<label list>) <vector expr>
+```
+多对一和一对多两种模式一定是出现在操作符两侧表达式返回的向量标签不一致的情况。因此需要使用ignoring和on修饰符来排除或者限定匹配的标签列表。     
+```
+method_code:http_errors:rate5m / ignoring(code) group_left method:http_requests:rate5m
+```
+在限定匹配标签method后，右向量中的元素可能匹配到多个左向量中的元素 因此该表达式的匹配模式为多对一，需要使用group修饰符group_left指定左向量具有更好的基数。     
+最终的运算结果如下：
+```
+{method="get", code="500"}  0.04            //  24 / 600
+{method="get", code="404"}  0.05            //  30 / 600
+{method="post", code="500"} 0.05            //   6 / 120
+{method="post", code="404"} 0.175           //  21 / 120
+```
+*提醒：group修饰符只能在比较和数学运算符中使用。在逻辑运算and,unless和or才注意操作中默认与右向量中的所有元素进行匹配。*
