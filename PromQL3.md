@@ -13,3 +13,26 @@ Prometheus提供了下列内置的聚合操作符，这些操作符作用域瞬�
       topk (前n条时序)
       quantile (分布统计)
 ```
+聚合操作的语法如下：
+```
+<aggr-op>([parameter,] <vector expression>) [without|by (<label list>)]
+```
+*其中只有count_values, quantile, topk, bottomk支持参数(parameter)。*         
+without用于从计算结果中移除列举的标签，而保留其它标签。by则正好相反，结果向量中只保留列出的标签，其余标签则移除。通过without和by可以按照样本的问题对数据进行聚合。
+```
+sum(http_requests_total) without (instance)
+//等价于
+sum(http_requests_total) by (code,handler,job,method)
+```
+
+count_values用于时间序列中每一个样本值出现的次数。count_values会为每一个唯一的样本值输出一个时间序列，并且每一个时间序列包含一个额外的标签。
+```
+count_values("count", http_requests_total)
+```
+![image](https://user-images.githubusercontent.com/24589721/184279696-f1ef683a-086c-4f33-98de-cf8abfb80432.png)        
+
+topk和bottomk则用于对样本值进行排序，返回当前样本值前n位，或者后n位的时间序列:
+```
+topk(5, http_requests_total)
+```
+
