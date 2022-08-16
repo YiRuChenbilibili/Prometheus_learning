@@ -35,9 +35,18 @@ for：评估等待时间，可选参数。用于表示只有当触发条件持�
 labels：自定义标签，允许用户指定要附加到告警上的一组附加标签。
 annotations：用于指定一组附加信息，比如用于描述告警详细信息的文字等，annotations的内容在告警产生时会一同作为参数发送到Alertmanager。
 
-为了能够让Prometheus能够启用定义的告警规则，我们需要在Prometheus全局配置文件中通过rule_files指定一组告警规则文件的访问路径，Prometheus启动后会自动扫描这些路径下规则文件中定义的内容，并且根据这些规则计算是否向外部发送通知：
+为了能够让Prometheus能够启用定义的告警规则，我们需要在**Prometheus全局配置文件**shu中通过rule_files指定一组告警规则文件的访问路径，Prometheus启动后会自动扫描这些路径下规则文件中定义的内容，并且根据这些规则计算是否向外部发送通知：
 ```
 rule_files:
   # - "first_rules.yml"
   # - "second_rules.yml"
+```
+
+**模板化**     
+一般来说，在告警规则文件的annotations中使用summary描述告警的概要信息，description用于描述告警的详细信息。同时Alertmanager的UI也会根据这两个标签值，显示告警信息。为了让告警信息具有更好的可读性，Prometheus支持模板化label和annotations的中标签的值。     
+```
+# 访问当前告警实例中指定标签的值:
+{{ $labels.<labelname> }}
+# 获取当前PromQL表达式计算的样本值:
+{{ $value }}
 ```
