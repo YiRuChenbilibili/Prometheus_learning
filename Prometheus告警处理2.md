@@ -113,3 +113,30 @@ route:
 
 如果告警时来源于数据库服务如MySQL或者Cassandra，此时则需要将告警发送给相应的数据库管理员(database-pager)。这里定义了一个单独子路由，如果告警中包含service标签，并且service为MySQL或者Cassandra,则向database-pager发送告警通知```service: mysql|cassandra```。由于这里没有定义group_by等属性，这些属性的配置信息将从上级路由继承，database-pager将会接收到按cluster和alertname进行分组的告警通知。
 
+## 内置告警接收器Receiver ##
+在Alertmanager中路由负责对告警信息进行分组匹配，并将像告警接收器发送通知。告警接收器可以通过以下形式进行配置：
+```
+receivers:
+  - <receiver> ...
+```
+每一个receiver具有一个全局唯一的名称，并且对应一个或者多个通知方式：
+```
+name: <string>
+email_configs:
+  [ - <email_config>, ... ]
+hipchat_configs:
+  [ - <hipchat_config>, ... ]
+pagerduty_configs:
+  [ - <pagerduty_config>, ... ]
+pushover_configs:
+  [ - <pushover_config>, ... ]
+slack_configs:
+  [ - <slack_config>, ... ]
+opsgenie_configs:
+  [ - <opsgenie_config>, ... ]
+webhook_configs:
+  [ - <webhook_config>, ... ]
+victorops_configs:
+  [ - <victorops_config>, ... ]
+```
+目前官方内置的第三方通知集成包括：邮件、 即时通讯软件（如Slack、Hipchat）、移动应用消息推送(如Pushover)和自动化运维工具（例如：Pagerduty、Opsgenie、Victorops）。Alertmanager的通知方式中还可以支持Webhook，通过这种方式开发者可以实现更多个性化的扩展支持。
