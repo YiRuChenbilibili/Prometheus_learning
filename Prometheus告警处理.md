@@ -12,8 +12,8 @@ Alertmanager作为一个独立的组件，负责接收并处理来自Prometheus 
 ## 自定义Prometheus告警规则 ##
 Prometheus中的告警规则允许基于PromQL表达式定义告警触发条件，Prometheus后端对这些触发规则进行周期性计算，当满足触发条件后则会触发告警通知。默认情况下，用户可以通过Prometheus的Web界面查看这些告警规则以及告警的触发状态。当Promthues与Alertmanager关联之后，可以将告警发送到外部服务如Alertmanager中并通过Alertmanager可以对这些告警进行进一步的处理。   
 
-**定义告警规则**
-yml中的警告规则：
+**定义告警规则**      
+rules.yml中的警告规则：
 ```
 groups:
 - name: example
@@ -35,7 +35,7 @@ for：评估等待时间，可选参数。用于表示只有当触发条件持�
 labels：自定义标签，允许用户指定要附加到告警上的一组附加标签。
 annotations：用于指定一组附加信息，比如用于描述告警详细信息的文字等，annotations的内容在告警产生时会一同作为参数发送到Alertmanager。
 
-为了能够让Prometheus能够启用定义的告警规则，我们需要在**Prometheus全局配置文件**shu中通过rule_files指定一组告警规则文件的访问路径，Prometheus启动后会自动扫描这些路径下规则文件中定义的内容，并且根据这些规则计算是否向外部发送通知：
+为了能够让Prometheus能够启用定义的告警规则，我们需要在**Prometheus全局配置文件**中通过rule_files指定一组告警规则文件的访问路径，Prometheus启动后会自动扫描这些路径下规则文件中定义的内容，并且根据这些规则计算是否向外部发送通知：
 ```
 rule_files:
   # - "first_rules.yml"
@@ -63,6 +63,7 @@ groups:
     labels:
       severity: page
     annotations:
+    #访问当前告警实例中指定标签instance的值
       summary: "Instance {{ $labels.instance }} down"
       description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
 
