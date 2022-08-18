@@ -140,3 +140,70 @@ victorops_configs:
   [ - <victorops_config>, ... ]
 ```
 目前官方内置的第三方通知集成包括：邮件、 即时通讯软件（如Slack、Hipchat）、移动应用消息推送(如Pushover)和自动化运维工具（例如：Pagerduty、Opsgenie、Victorops）。Alertmanager的通知方式中还可以支持Webhook，通过这种方式开发者可以实现更多个性化的扩展支持。
+
+**与SMTP邮件集成**     
+邮箱应该是目前企业最常用的告警通知方式，Alertmanager内置了对SMTP协议的支持，因此对于企业用户而言，只需要一些基本的配置即可实现通过邮件的通知。
+
+在Alertmanager使用邮箱通知，用户只需要定义好SMTP相关的配置，并且在receiver中定义接收方的邮件地址即可。在Alertmanager中我们可以直接在配置文件的global中定义全局的SMTP配置：
+```
+global:
+  [ smtp_from: <tmpl_string> ]
+  [ smtp_smarthost: <string> ]
+  [ smtp_hello: <string> | default = "localhost" ]
+  [ smtp_auth_username: <string> ]
+  [ smtp_auth_password: <secret> ]
+  [ smtp_auth_identity: <string> ]
+  [ smtp_auth_secret: <secret> ]
+  [ smtp_require_tls: <bool> | default = true ]
+```
+完成全局SMTP之后，我们只需要为receiver配置email_configs用于定义一组接收告警的邮箱地址即可，如下所示：
+```
+name: <string>
+email_configs:
+  [ - <email_config>, ... ]
+```
+配置模板及单独配置：
+```
+[ send_resolved: <boolean> | default = false ]
+to: <tmpl_string>
+[ html: <tmpl_string> | default = '{{ template "email.default.html" . }}' ]
+[ headers: { <string>: <tmpl_string>, ... } ]
+```
+例子：
+```
+# 全局配置,包括报警解决后的超时时间、SMTP 相关配置、各种渠道通知的 API 地址等等。
+global:
+  # 告警超时时间
+  resolve_timeout: 5m
+  # 发送者邮箱地址
+  smtp_from: 'xx@163.com' 
+  # 邮箱smtp服务器地址及端口  
+  smtp_smarthost: 'smtp.163.com:25'  
+  # 发送者邮箱账号
+  smtp_auth_username: 'xx@163.com'  
+  # 发送者邮箱密码，这里填入第一步中获取的授权码
+  smtp_auth_password: 'wWIXMAZCNBMW'
+  # 是否使用tls 
+  smtp_require_tls: false
+  smtp_hello: '163.com'
+# 路由配置,设置报警的分发策略，它是一个树状结构，按照深度优先从左向右的顺序进行匹配。
+route:
+  # 用于将传入警报分组在一起的标签。
+  # 基于告警中包含的标签，如果满足group_by中定义标签名称，那么这些告警将会合并为一个通知发送给接收器。
+  group_by: ['alertname']
+  # 发送通知的初始等待时间
+  group_wait: 30s
+  # 在发送有关新警报的通知之前需要等待多长时间 
+  group_interval: 5m
+  # 如果已发送通知，则在再次发送通知之前要等待多长时间，通常约3小时或更长时间
+  repeat_interval: 30s
+  # 接受者名称
+  receiver: '163.email'
+# 配置告警消息接受者信息，例如常用的 email、wechat、slack、webhook 等消息通知方式
+receivers:
+- name: '163.email'
+  email_configs:
+  # 配置接受邮箱地址
+  - to : 'xxx@163.com'
+```
+链接：https://blog.csdn.net/qq_43437874/article/details/120414889
