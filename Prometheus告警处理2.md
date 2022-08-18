@@ -83,3 +83,33 @@ routes:
 其中告警的匹配有两种方式可以选择：      
 第一种方式基于字符串验证，通过设置match规则判断当前告警中是否存在标签labelname并且其值等于labelvalue；      
 第二种方式则基于正则表达式，通过设置match_re验证当前告警标签的值是否满足正则表达式的内容。
+
+## 告警分组 ##
+Alertmanager可以对告警通知进行分组，将多条告警合合并为一个通知。这里我们可以使用group_by来定义分组规则。基于告警中包含的标签，如果满足group_by中定义标签名称，那么这些告警将会合并为一个通知发送给接收器。
+
+有的时候为了能够一次性收集和发送更多的相关信息时，可以通过group_wait参数设置等待时间，如果在等待时间内当前group接收到了新的告警，这些告警将会合并为一个通知向receiver发送。
+
+而group_interval配置，则用于定义相同的Group之间发送告警通知的时间间隔。 
+
+当使用Prometheus监控多个集群以及部署在集群中的应用和数据库服务，并且定义以下的告警处理路由规则来对集群中的异常进行通知。
+```
+route:
+  receiver: 'default-receiver'
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  group_by: [cluster, alertname]
+  routes:
+  - receiver: 'database-pager'
+    group_wait: 10s
+    match_re:
+      service: mysql|cassandra
+  - receiver: 'frontend-pager'
+    group_by: [product, environment]
+    match:
+      team: frontend
+ ```
+默认情况下所有的告警都会发送给集群管理员default-receiver，因此在Alertmanager的配置文件的根路由中，对告警信息按照集群以及告警的名称对告警进行分组。
+
+如果告警时来源于数据库服务如MySQL或者Cassandra，此时则需要将告警发送给相应的数据库管理员(database-pager)。这里定义了一个单独子路由，如果告警中包含service标签，并且service为MySQL或者Cassandra,则向database-pager发送告警通知```service: mysql|cassandra```。由于这里没有定义group_by等属性，这些属性的配置信息将从上级路由继承，database-pager将会接收到按cluster和alertname进行分组的告警通知。
+
