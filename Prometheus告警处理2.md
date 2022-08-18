@@ -45,3 +45,41 @@ receivers:
 inhibit_rules:
   [ - <inhibit_rule> ... ]
 ```
+## 基于标签的告警路由 ##
+在Alertmanager的配置中会定义一个基于标签匹配规则的告警路由树，以确定在接收到告警后Alertmanager需要如何对其进行处理.      
+其中route中则主要定义了告警的路由匹配规则，以及Alertmanager需要将匹配到的告警发送给哪一个receiver，一个最简单的route定义如下所示：
+```
+route:
+  group_by: ['alertname']
+  receiver: 'web.hook'
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://127.0.0.1:5001/'
+```
+在此Alertmanager配置文件中，我们只定义了一个路由，那就意味着所有由Prometheus产生的告警在发送到Alertmanager之后都会通过名为web.hook的receiver接收。这里的web.hook定义为一个webhook地址。当然实际场景下，告警处理可不是这么简单的一件事情，对于不同级别的告警，我们可能会不完全不同的处理方式，因此在route中，还可以定义更多的子Route，这些Route通过**标签匹配告警**的处理方式，route的完整定义如下：
+```
+[ receiver: <string> ]
+[ group_by: '[' <labelname>, ... ']' ]
+[ continue: <boolean> | default = false ]
+
+match:
+  [ <labelname>: <labelvalue>, ... ]
+
+match_re:
+  [ <labelname>: <regex>, ... ]
+
+[ group_wait: <duration> | default = 30s ]
+[ group_interval: <duration> | default = 5m ]
+[ repeat_interval: <duration> | default = 4h ]
+#repeat_interval设置发送告警通知之前要等待时间
+routes:
+  [ - <route> ... ]
+```
+## 路由匹配 ##
+每一个告警都会从配置文件中顶级的route进入路由树，需要注意的是**顶级的route必须匹配所有告警(即不能有任何的匹配设置match和match_re)**，每一个路由都可以定义自己的接受人以及匹配规则。  
+默认情况下，告警进入到顶级route后会遍历所有的子节点，直到找到最深的匹配route，并将告警发送到该route定义的receiver中。但*如果route中设置continue的值为false，那么告警在匹配到第一个子节点之后就直接停止。如果continue为true，报警则会继续进行后续子节点的匹配*。如果当前告警匹配不到任何的子节点，那该告警将会基于当前路由节点的接收器配置方式进行处理。
+
+其中告警的匹配有两种方式可以选择：      
+第一种方式基于字符串验证，通过设置match规则判断当前告警中是否存在标签labelname并且其值等于labelvalue；      
+第二种方式则基于正则表达式，通过设置match_re验证当前告警标签的值是否满足正则表达式的内容。
